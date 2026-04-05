@@ -2,7 +2,7 @@
 
 async function init() {
   restoreSession();
-  await loadAllData();
+  await ensureData();
   renderSidebar();
   updateCartBadge();
   render();
