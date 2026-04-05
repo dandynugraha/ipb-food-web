@@ -6,7 +6,7 @@ const CART_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 async function init() {
   restoreSession();                    // publik — tidak perlu login
-  await loadAllData();
+  await ensureData();
   renderSidebar();
   updateCartBadge();
   renderPage();
