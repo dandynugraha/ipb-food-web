@@ -303,3 +303,116 @@ img { display: block; max-width: 100%; object-fit: cover; }
   .fgg { grid-template-columns:1fr 1fr; }
   .hst { gap:14px; }
 }
+
+/* ═══════════════════════════════════════════════
+   MOBILE FIXES — presisi tampilan di HP
+   ═══════════════════════════════════════════════ */
+
+/* Reels: hide sidebar on mobile, full width feed */
+@media (max-width: 768px) {
+  #reelsSide   { display: none !important; }
+  #reelsWrap   { display: block !important; }
+  #reelsFeed   { max-width: 100% !important; }
+  .reel-card   { max-width: 100% !important; border-radius: var(--r16) !important; }
+}
+
+/* Detail page: single column on mobile */
+@media (max-width: 768px) {
+  .dl  { grid-template-columns: 1fr !important; }
+  .col { grid-template-columns: 1fr !important; }
+  #opanel { display: none; } /* hide sticky order panel, pakai checkout page */
+}
+
+/* Auth: hide left panel on mobile */
+@media (max-width: 768px) {
+  .al { display: none !important; }
+  .ar { padding: 24px 16px !important; }
+  .af { max-width: 100% !important; }
+}
+
+/* Topbar search: full width on mobile */
+@media (max-width: 600px) {
+  .tb-srch { max-width: none !important; }
+  .topbar  { padding: 0 12px !important; gap: 8px !important; }
+  .tb-r    { gap: 4px !important; }
+  .pg      { padding: 14px 12px !important; }
+}
+
+/* Hero: compact on mobile */
+@media (max-width: 600px) {
+  .hero   { padding: 20px 18px !important; }
+  .hh     { font-size: 20px !important; }
+  .hst    { gap: 12px !important; margin-top: 14px !important; }
+  .hsi-v  { font-size: 16px !important; }
+  .dpill  { padding: 12px 16px !important; }
+  .dp-pct { font-size: 26px !important; }
+}
+
+/* Food grid: 2 kolom di mobile */
+@media (max-width: 480px) {
+  .fgg { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+  .fc-img { height: 110px !important; }
+  .fc-b   { padding: 10px !important; }
+  .fc-n   { font-size: 12px !important; }
+  .pm     { font-size: 13px !important; }
+}
+
+/* UMKM grid: 1 kolom di mobile kecil */
+@media (max-width: 480px) {
+  .ugg { grid-template-columns: 1fr !important; }
+}
+
+/* Chips: scroll horizontal di mobile */
+@media (max-width: 600px) {
+  .chips {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0 !important; }
+}
+
+/* Detail header: stack di mobile */
+@media (max-width: 600px) {
+  .dh { flex-direction: column !important; padding: 20px 16px !important; }
+  .dh-ic { width: 60px !important; height: 60px !important; }
+  .dh-n  { font-size: 18px !important; }
+  .dh-st { gap: 12px !important; }
+  .dhs-v { font-size: 14px !important; }
+}
+
+/* Checkout: single column di mobile */
+@media (max-width: 600px) {
+  .steps { overflow-x: auto; padding-bottom: 4px; }
+  .tsg   { grid-template-columns: repeat(3,1fr) !important; }
+  .dtg   { flex-direction: column !important; }
+  .dt    { padding: 12px !important; }
+}
+
+/* Metric 4 kolom: 2x2 di mobile */
+@media (max-width: 600px) {
+  .g4 { grid-template-columns: repeat(2,1fr) !important; }
+}
+
+/* Sidebar: pastikan full screen di mobile */
+@media (max-width: 900px) {
+  .sidebar { width: 280px !important; box-shadow: var(--sxl); }
+}
+
+/* AI chat: full height pada mobile */
+@media (max-width: 900px) {
+  .chatm { height: calc(100vh - 140px) !important; }
+}
+
+/* Dashboard bar chart: tidak overflow */
+@media (max-width: 480px) {
+  .bc { overflow-x: auto; padding-bottom: 28px; min-width: 320px; }
+}
+
+/* Video grid: 2 kolom di mobile */
+@media (max-width: 600px) {
+  .ga { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+}
