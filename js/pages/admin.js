@@ -2,7 +2,7 @@
 
 async function init() {
   if (!requireAuth(['admin'])) return;
-  await loadAllData();
+  await ensureData();
   renderSidebar();
   updateCartBadge();
   render();
