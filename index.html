@@ -200,14 +200,10 @@ async function guestLogin() {
   doLogin('general', null);
 }
 
-var _searchTimer = null;
 function doSearch(v) {
-  clearTimeout(_searchTimer);
-  if (!v.trim()) return;
-  // Debounce 500ms - jangan redirect tiap ketik satu huruf
-  _searchTimer = setTimeout(function() {
+  if (v.trim()) {
     window.location.href = 'explore.html?q=' + encodeURIComponent(v.trim());
-  }, 500);
+  }
 }
 
 // === DATA CACHE (fix loading berulang) ===
@@ -312,13 +308,7 @@ function renderHome() {
   html += '<div class="fgg" id="trendG"></div>';
   html += '<hr class="div">';
   html += '<div class="stit">Hemat untuk Mahasiswa <span class="bx bx-gr" style="vertical-align:middle">Di bawah Rp 12.000</span></div>';
-  html += '<div class="fgg" id="cheapG"></div>' +
-    '<hr class="div">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
-      '<div class="stit" style="margin-bottom:0">Video TikTok Terbaru <span class="bx bx-n" style="vertical-align:middle">IPB Makan</span></div>' +
-      '<a href="reels.html" class="btn b-gho b-sm">Lihat semua</a>' +
-    '</div>' +
-    '<div id="tiktokSection"></div>';
+  html += '<div class="fgg" id="cheapG"></div>';
 
   document.getElementById('homeContent').innerHTML = html;
 
@@ -379,42 +369,6 @@ function renderFoodGrid(id, items) {
     html += '</a>';
   }
 
-  el.innerHTML = html;
-}
-
-function renderTikTokSection() {
-  var el = document.getElementById('tiktokSection');
-  if (!el) return;
-  var vids = STATE.videos.filter(function(v){ return v.is_tiktok && v.tiktok_id; }).slice(0, 4);
-  if (!vids.length) {
-    // Tampilkan semua video (non-TikTok juga) jika tidak ada TikTok
-    vids = STATE.videos.slice(0, 4);
-  }
-  if (!vids.length) { el.innerHTML = ''; return; }
-
-  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">';
-  vids.forEach(function(v) {
-    var u = getUmkm(v.umkm_id);
-    var hasTT = v.is_tiktok && v.tiktok_id;
-    html +=
-      '<div style="border-radius:var(--r16);overflow:hidden;cursor:pointer;box-shadow:var(--sx);background:var(--s);border:1px solid var(--b)" ' +
-      'onclick="location.href='reels.html'">' +
-        '<div style="position:relative;padding-top:177%;background:#0f172a">' +
-          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">' +
-            (hasTT
-              ? '<iframe src="https://www.tiktok.com/embed/v2/' + v.tiktok_id + '" style="width:100%;height:100%;border:none;pointer-events:none" loading="lazy"></iframe>'
-              : '<svg style="opacity:.2" width="36" height="36" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>') +
-          '</div>' +
-          (hasTT ? '<div style="position:absolute;top:6px;left:6px"><span style="background:rgba(0,0,0,.65);color:#fff;font-size:8px;font-weight:800;padding:2px 5px;border-radius:6px">TikTok</span></div>' : '') +
-          '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8) 0%,transparent 50%);pointer-events:none"></div>' +
-          '<div style="position:absolute;bottom:8px;left:8px;right:8px">' +
-            '<div style="color:#fff;font-size:11px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(v.food_name || v.caption.slice(0,24)) + '</div>' +
-            '<div style="color:var(--gold);font-size:12px;font-weight:800;margin-top:2px">' + rp(v.food_price || 0) + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-  });
-  html += '</div>';
   el.innerHTML = html;
 }
 
