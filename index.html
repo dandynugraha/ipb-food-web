@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPB Makan — Ekosistem Pangan Kampus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/design.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+.logo-img { width: 38px; height: 38px; object-fit: contain; border-radius: 8px; background: #fff; }
+.logo-img-lg { width: 52px; height: 52px; object-fit: contain; }
+.auth-logo-img { width: 44px; height: 44px; object-fit: contain; }
+</style>
+</head>
+<body>
+
+<div id="ldr">
+  <div style="display:flex;align-items:center;gap:16px">
+    <img src="images/logo.png" alt="IPB Makan" style="width:56px;height:56px;object-fit:contain;filter:brightness(0) invert(1)">
+    <div><div class="lname">IPB Makan</div><div class="lsub">Jl. Babakan Raya, IPB Dramaga</div></div>
+  </div>
+  <div class="lbar-w"><div class="lbar"></div></div>
+</div>
+<div id="toasts" style="position:fixed;bottom:24px;right:24px;z-index:8000;display:flex;flex-direction:column;gap:8px;pointer-events:none"></div>
+
+<!-- AUTH SCREEN -->
+<div class="auth-w" id="authW">
+  <div class="al">
+    <div class="al-logo">
+      <img src="images/logo.png" alt="IPB Makan" class="auth-logo-img" style="filter:brightness(0) invert(1)">
+      <div><div class="al-brand">IPB Makan</div><div class="al-brand-sub">Jl. Babakan Raya, Dramaga</div></div>
+    </div>
+    <div class="al-h">Platform Digital Ekosistem Pangan Kampus IPB</div>
+    <div class="al-p">Mendukung warung UMKM di Jl. Babakan Raya dengan pre-order digital, Poki Food delivery, dan AI bisnis Gemini.</div>
+    <div class="al-feats">
+      <div class="al-feat"><div class="al-dot"></div>Diskon 5–15% eksklusif mahasiswa IPB terverifikasi NIM</div>
+      <div class="al-feat"><div class="al-dot"></div>Pre-order digital dengan nomor antrean otomatis</div>
+      <div class="al-feat"><div class="al-dot"></div>Pengiriman Poki Food — detail driver ditampilkan ke mahasiswa</div>
+      <div class="al-feat"><div class="al-dot"></div>Dashboard analitik & AI Asisten Gemini 1.5 Pro untuk UMKM</div>
+    </div>
+  </div>
+  <div class="ar">
+    <div class="af">
+      <div style="text-align:center;margin-bottom:24px">
+        <img src="images/logo.png" alt="IPB Makan" style="width:64px;height:64px;object-fit:contain;margin:0 auto 10px">
+        <div style="font-size:11px;color:var(--t3);font-weight:600">Masuk atau buat akun untuk mulai</div>
+      </div>
+      <div class="atabs">
+        <button class="atab on" onclick="swTab('login')">Masuk</button>
+        <button class="atab" onclick="swTab('reg')">Daftar</button>
+      </div>
+      <div id="fLogin">
+        <div class="af-h">Selamat Datang Kembali</div>
+        <div class="af-s">Masuk ke platform IPB Makan</div>
+        <div class="fg">
+          <label class="fl">Masuk sebagai</label>
+          <select class="fi fi-sel" id="lRole" onchange="onRoleChg()">
+            <option value="student">Mahasiswa IPB (diskon eksklusif)</option>
+            <option value="umkm">UMKM / Pemilik Warung</option>
+            <option value="general">Umum (harga standar)</option>
+            <option value="admin">Admin Platform</option>
+          </select>
+        </div>
+        <div class="nim-tip" id="nimTip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          <div class="nim-tip-t">Mahasiswa IPB mendapat diskon 5–15% di semua warung. Masukkan NIM untuk verifikasi.</div>
+        </div>
+        <div class="fg" id="nimFld">
+          <label class="fl">NIM / Email IPB</label>
+          <input type="text" class="fi" id="lNim" placeholder="G641xxxxxx atau nama@apps.ipb.ac.id">
+          <div class="fi-h">Format NIM: huruf + 8–10 digit angka</div>
+        </div>
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input type="password" class="fi" id="lPass" placeholder="Password Anda" onkeypress="if(event.key==='Enter')submitLogin()">
+        </div>
+        <button class="btn b-pri b-fw b-lg" onclick="submitLogin()">Masuk</button>
+        <button class="btn b-gho b-fw b-sm" style="margin-top:8px" onclick="guestLogin()">Lanjutkan tanpa login (harga standar)</button>
+      </div>
+      <div id="fReg" style="display:none">
+        <div class="af-h">Buat Akun Baru</div>
+        <div class="af-s">Bergabung dengan ekosistem IPB Makan</div>
+        <div class="fg">
+          <label class="fl">Daftar sebagai</label>
+          <select class="fi fi-sel" id="rRole" onchange="onRegRoleChg()">
+            <option value="student">Mahasiswa IPB</option>
+            <option value="umkm">UMKM / Pemilik Warung</option>
+            <option value="general">Umum</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Nama Lengkap</label><input type="text" class="fi" id="rName" placeholder="Nama lengkap Anda"></div>
+        <div class="fg" id="rNimFld"><label class="fl">NIM IPB</label><input type="text" class="fi" id="rNim" placeholder="G641xxxxxx"><div class="fi-h">Untuk aktivasi diskon mahasiswa</div></div>
+        <div class="fg" id="rKioskFld" style="display:none"><label class="fl">Nama Warung</label><input type="text" class="fi" id="rKiosk" placeholder="Nama warung Anda di Babakan Raya"></div>
+        <div class="fg"><label class="fl">Email</label><input type="email" class="fi" id="rEmail" placeholder="email@apps.ipb.ac.id"></div>
+        <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="rPass" placeholder="Minimal 8 karakter" onkeypress="if(event.key==='Enter')submitRegister()"></div>
+        <button class="btn b-pri b-fw b-lg" onclick="submitRegister()">Buat Akun</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="app" style="display:none">
+  <nav class="sidebar" id="sb">
+    <div class="sb-logo" onclick="location.href='index.html'">
+      <img src="images/logo.png" alt="IPB Makan" class="logo-img" style="filter:brightness(0) invert(1)">
+      <div><div class="sb-n">IPB Makan</div><div class="sb-s">Babakan Raya, Dramaga</div></div>
+    </div>
+    <div class="sb-role"><div class="sb-dot"></div><span class="sb-rl">Mode</span><span class="sb-rv" id="sbRv">—</span></div>
+    <nav class="sbnav" id="sbnav"></nav>
+    <div class="sb-bot">
+      <div class="sb-user">
+        <div class="sb-av" id="sbAv">—</div>
+        <div><div class="sb-un" id="sbUn">—</div><div class="sb-us" id="sbUs">—</div></div>
+        <button class="sb-lo" onclick="doLogout()" title="Keluar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+  <div class="main">
+    <header class="topbar">
+      <button class="tb-ham" id="hamBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div class="tb-srch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" placeholder="Cari makanan, warung di Babakan Raya..." oninput="doSearch(this.value)">
+      </div>
+      <div class="tb-r">
+        <a class="tb-btn" href="checkout.html" title="Keranjang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <div class="cart-badge" style="display:none">0</div>
+        </a>
+      </div>
+    </header>
+    <div class="pg" id="homeContent"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script>
+function swTab(t) {
+  document.querySelectorAll('.atab').forEach((b,i)=>b.classList.toggle('on',t==='login'?i===0:i===1));
+  document.getElementById('fLogin').style.display=t==='login'?'':'none';
+  document.getElementById('fReg').style.display=t==='reg'?'':'none';
+}
+function onRoleChg() {
+  const r=document.getElementById('lRole').value;
+  document.getElementById('nimFld').style.display=r==='student'?'':'none';
+  document.getElementById('nimTip').style.display=r==='student'?'':'none';
+}
+function onRegRoleChg() {
+  const r=document.getElementById('rRole').value;
+  document.getElementById('rNimFld').style.display=r==='student'?'':'none';
+  document.getElementById('rKioskFld').style.display=r==='umkm'?'':'none';
+}
+async function submitLogin() {
+  const btn=event.target;btn.disabled=true;btn.textContent='Memuat...';
+  await loadAllData();
+  doLogin(document.getElementById('lRole').value, document.getElementById('lNim')?.value);
+}
+async function submitRegister() {
+  const nm=document.getElementById('rName').value.trim();
+  if(!nm){toast('Nama lengkap wajib diisi','err');return;}
+  await loadAllData();
+  STATE.role=document.getElementById('rRole').value;
+  STATE.user={id:'new-'+Date.now(),full_name:nm,role:STATE.role,nim:document.getElementById('rNim')?.value};
+  if(STATE.role==='umkm') STATE.umkmId=STATE.umkm[0]?.id||null;
+  saveSession();
+  window.location.href=roleHome(STATE.role);
+}
+async function guestLogin() {
+  await loadAllData();
+  doLogin('general', null);
+}
+function doSearch(v) {
+  if(v.trim()) window.location.href='explore.html?q='+encodeURIComponent(v);
+}
+
+function renderHome() {
+  const h=new Date().getHours();
+  const greet=h<11?'Selamat pagi':h<15?'Selamat siang':h<18?'Selamat sore':'Selamat malam';
+  const name=STATE.user?.full_name?.split(' ')[0];
+  const isStudent=STATE.role==='student';
+  document.getElementById('homeContent').innerHTML=`
+    <div class="hero">
+      <div class="ht">
+        <div class="hg">${"${greet}${name ? `, ${name}` : ''}"}</div>
+        <div class="hh">${"${isStudent ? 'Hemat lebih banyak dengan<br>verifikasi NIM IPB Anda.' : 'Makan enak di Babakan Raya,<br>tanpa antre panjang.'}"}</div>
+        <div class="hs">${"${STATE.umkm.length}"} warung aktif di Jl. Babakan Raya, IPB Dramaga</div>
+        <div class="hst">
+          <div class="hsi"><div class="hsi-v">${"${STATE.umkm.length}"}</div><div class="hsi-l">Warung Aktif</div></div>
+          <div class="hsi-d"></div>
+          <div class="hsi"><div class="hsi-v">${"${STATE.menu.length}"}</div><div class="hsi-l">Menu Tersedia</div></div>
+          <div class="hsi-d"></div>
+          <div class="hsi"><div class="hsi-v">Rp 3rb</div><div class="hsi-l">Mulai dari</div></div>
+        </div>
+      </div>
+      ${"${isStudent ? `<div style=\"flex-shrink:0;position:relative;z-index:1\"><div class=\"dpill\"><div class=\"dp-pct\">5–15%</div><div class=\"dp-l\">Diskon Mahasiswa</div><div class=\"dp-s\">NIM IPB terverifikasi</div></div></div>` : \'\'}"}
+    </div>
+    <div class="chips" id="catBar">
+      <div class="chip on" onclick="fCat(this,'all')">Semua</div>
+      <div class="chip" onclick="fCat(this,'Nasi & Lauk')">Nasi & Lauk</div>
+      <div class="chip" onclick="fCat(this,'Mie & Bakso')">Mie & Bakso</div>
+      <div class="chip" onclick="fCat(this,'Sayur & Sehat')">Sayur & Sehat</div>
+      <div class="chip" onclick="fCat(this,'Padang')">Padang</div>
+      <div class="chip" onclick="fCat(this,'Minuman & Kopi')">Minuman</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="stit" style="margin-bottom:0">Menu Populer</div>
+      <a href="explore.html" class="btn b-gho b-sm">Lihat semua</a>
+    </div>
+    <div class="fgg" id="trendG"></div>
+    <hr class="div">
+    <div class="stit">Hemat untuk Mahasiswa <span class="bx bx-gr" style="vertical-align:middle">Di bawah Rp 12.000</span></div>
+    <div class="fgg" id="cheapG"></div>`;
+  renderFoodGrid('trendG', STATE.menu.slice(0,8));
+  renderFoodGrid('cheapG', STATE.menu.filter(m=>m.price<=12000).slice(0,8));
+}
+
+function renderFoodGrid(id,items) {
+  const el=document.getElementById(id);if(!el)return;
+  if(!items.length){el.innerHTML=emptyState('Belum ada menu');return;}
+  el.innerHTML=items.map(m=>{
+    const u=STATE.umkm.find(u=>u.id===m.umkm_id);
+    const isS=STATE.role==='student'&&m.student_price;
+    const price=isS?m.student_price:(m.general_price||m.price);
+    const orig=m.general_price||m.price;
+    return `<a class="fc" href="explore.html#${m.umkm_id}" style="text-decoration:none">
+      <img src="${getPhoto(m)}" class="fc-img" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt="${esc(m.name)}">
+      <div class="fc-ph" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <div class="fc-b">
+        <div class="fc-n">${esc(m.name)}${"${m.is_best_seller?'<span class=\"bx bx-m\" style=\"font-size:9px\">Best</span>':''}"}</div>
+        <div class="fc-u">${esc(u?.nama||'—')} · Kios ${esc(u?.kiosk_number||'—')}</div>
+        <div class="fc-f">
+          <div class="pw">
+            <div class="pm">${rp(price)}</div>
+            ${"${isS&&price<orig?`<div class=\"po\">${rp(orig)}</div><div class=\"pd\">Diskon Mhs</div>`:''}"} 
+          </div>
+        </div>
+      </div>
+    </a>`;
+  }).join('');
+}
+
+function fCat(el,cat) {
+  document.querySelectorAll('#catBar .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  const items=cat==='all'?STATE.menu.slice(0,8):STATE.menu.filter(m=>{
+    const u=STATE.umkm.find(u=>u.id===m.umkm_id);return u?.category===cat;
+  }).slice(0,8);
+  renderFoodGrid('trendG',items);
+}
+
+async function init() {
+  restoreSession(); // Restore or default to general — never redirect
+  const ok = await loadAllData();
+  if(!ok) { toast('Gagal memuat data, cek koneksi internet', 'err'); }
+
+  // If already logged in, show app directly
+  if(STATE.user || STATE.role!=='general') {
+    document.getElementById('authW').style.display='none';
+    document.getElementById('app').style.display='flex';
+    renderSidebar();
+    renderHome();
+    updateCartBadge();
+  }
+  // Otherwise show auth screen (default)
+  setTimeout(()=>document.getElementById('ldr').classList.add('out'), 1800);
+}
+init();
+</script>
+</body>
+</html>

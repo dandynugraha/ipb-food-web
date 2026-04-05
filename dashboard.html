@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard UMKM — IPB Makan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/design.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<div id="ldr">
+  <div style="display:flex;align-items:center;gap:16px">
+    <img src="images/logo.png" alt="IPB Makan"
+      style="width:52px;height:52px;object-fit:contain;filter:brightness(0) invert(1)">
+    <div><div class="lname">IPB Makan</div><div class="lsub">Dashboard UMKM</div></div>
+  </div>
+  <div class="lbar-w"><div class="lbar"></div></div>
+</div>
+
+<div id="toasts" style="position:fixed;bottom:24px;right:24px;z-index:8000;display:flex;flex-direction:column;gap:8px;pointer-events:none"></div>
+
+<div class="app" id="app">
+  <nav class="sidebar" id="sb">
+    <div class="sb-logo" onclick="location.href='index.html'">
+      <img src="images/logo.png" alt="IPB Makan" style="width:38px;height:38px;object-fit:contain;filter:brightness(0) invert(1);border-radius:8px;flex-shrink:0">
+      <div><div class="sb-n">IPB Makan</div><div class="sb-s">Babakan Raya, Dramaga</div></div>
+    </div>
+    <div class="sb-role"><div class="sb-dot"></div><span class="sb-rl">Mode</span><span class="sb-rv" id="sbRv">—</span></div>
+    <nav class="sbnav" id="sbnav"></nav>
+    <div class="sb-bot">
+      <div class="sb-user">
+        <div class="sb-av" id="sbAv">—</div>
+        <div><div class="sb-un" id="sbUn">—</div><div class="sb-us" id="sbUs">—</div></div>
+        <button class="sb-lo" onclick="doLogout()" title="Keluar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+  <div class="main">
+    <header class="topbar">
+      <button class="tb-ham" id="hamBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="tb-srch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" placeholder="Cari makanan, warung di Babakan Raya..."
+          oninput="if(this.value.trim()) window.location.href='explore.html?q='+encodeURIComponent(this.value)">
+      </div>
+      <div class="tb-r">
+        <a class="tb-btn" href="checkout.html" title="Keranjang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <div class="cart-badge" style="display:none">0</div>
+        </a>
+      </div>
+    </header>
+    <div class="pg" id="pageContent">
+      <div class="empty" style="padding:80px 20px">
+        <div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div>
+        <div class="etit">Memuat halaman...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/gemini.js"></script>
+<script src="js/pages/dashboard.js"></script>
+</body>
+</html>
