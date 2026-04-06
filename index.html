@@ -290,6 +290,36 @@ function renderHome() {
   html +=   pillDiskon;
   html += '</div>';
 
+  // ─── 2 Banner Video (Reels UMKM + Review IPB Makan) ───
+  html += '<div class="vbn-row">';
+  html +=   '<a href="reels.html" class="vbn vbn-reels">';
+  html +=     '<div class="vbn-icon">';
+  html +=       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">';
+  html +=         '<polygon points="23 7 16 12 23 17 23 7"/>';
+  html +=         '<rect x="1" y="5" width="15" height="14" rx="2"/>';
+  html +=       '</svg>';
+  html +=     '</div>';
+  html +=     '<div class="vbn-text">';
+  html +=       '<div class="vbn-tag">REELS UMKM</div>';
+  html +=       '<div class="vbn-title">Tonton Video Warung</div>';
+  html +=       '<div class="vbn-sub">Promo &amp; menu favorit dari Babakan Raya</div>';
+  html +=     '</div>';
+  html +=     '<div class="vbn-arrow">→</div>';
+  html +=   '</a>';
+  html +=   '<a href="review.html" class="vbn vbn-review">';
+  html +=     '<div class="vbn-icon">';
+  html +=       '<svg viewBox="0 0 24 24" fill="currentColor">';
+  html +=         '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>';
+  html +=       '</svg>';
+  html +=     '</div>';
+  html +=     '<div class="vbn-text">';
+  html +=       '<div class="vbn-tag">★ OFFICIAL</div>';
+  html +=       '<div class="vbn-title">Review IPB Makan</div>';
+  html +=       '<div class="vbn-sub">Konten TikTok official dari @ipbmakan</div>';
+  html +=     '</div>';
+  html +=     '<div class="vbn-arrow">→</div>';
+  html +=   '</a>';
+  html += '</div>';
   // Filter chips
   html += '<div class="chips" id="catBar">';
   html +=   '<div class="chip on" onclick="fCat(this,\'all\')">Semua</div>';
