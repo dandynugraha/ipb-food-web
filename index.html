@@ -19,8 +19,8 @@
 </div>
 <div id="toasts" style="position:fixed;bottom:24px;right:24px;z-index:8000;display:flex;flex-direction:column;gap:8px;pointer-events:none"></div>
 
-<!-- AUTH (modal-style, hidden by default) -->
-<div class="auth-w" id="authW" style="display:none">
+<!-- AUTH -->
+<div class="auth-w" id="authW">
   <div class="al">
     <div class="al-logo">
       <img src="images/logo.png" alt="Logo" style="width:48px;height:48px;object-fit:contain;filter:brightness(0) invert(1);flex-shrink:0">
@@ -37,7 +37,6 @@
   </div>
   <div class="ar">
     <div class="af">
-      <button onclick="closeAuth()" style="position:absolute;top:20px;right:20px;width:34px;height:34px;border-radius:50%;background:var(--s2);border:none;cursor:pointer;font-size:16px;color:var(--t2)">✕</button>
       <div style="text-align:center;margin-bottom:22px">
         <img src="images/logo.png" alt="IPB Makan" style="width:64px;height:64px;object-fit:contain;margin:0 auto 10px;display:block">
         <div style="font-size:11px;color:var(--t3);font-weight:600">Masuk atau buat akun untuk mulai</div>
@@ -72,6 +71,7 @@
           <input type="password" class="fi" id="lPass" placeholder="Password Anda" onkeypress="if(event.key==='Enter')submitLogin()">
         </div>
         <button class="btn b-pri b-fw b-lg" id="loginBtn" onclick="submitLogin()">Masuk</button>
+        <button class="btn b-gho b-fw b-sm" style="margin-top:8px" onclick="guestLogin()">Lanjutkan tanpa login (harga standar)</button>
       </div>
       <div id="fReg" style="display:none">
         <div class="af-h">Buat Akun Baru</div>
@@ -96,7 +96,7 @@
 </div>
 
 <!-- APP -->
-<div class="app" id="app">
+<div class="app" id="app" style="display:none">
   <nav class="sidebar" id="sb">
     <div class="sb-logo" onclick="location.href='index.html'">
       <img src="images/logo.png" alt="IPB Makan" style="width:38px;height:38px;object-fit:contain;filter:brightness(0) invert(1);border-radius:8px;flex-shrink:0">
@@ -124,7 +124,6 @@
         <input type="text" placeholder="Cari makanan, warung di Babakan Raya..." oninput="doSearch(this.value)">
       </div>
       <div class="tb-r">
-        <button class="btn b-pri b-sm" id="topLoginBtn" onclick="openAuth()" style="display:none">Masuk / Daftar</button>
         <a class="tb-btn" href="checkout.html" title="Keranjang">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
           <div class="cart-badge" style="display:none">0</div>
@@ -164,14 +163,6 @@ function onRegRoleChg() {
   document.getElementById('rKioskFld').style.display = (r === 'umkm')    ? '' : 'none';
 }
 
-// Open / close auth modal
-function openAuth() {
-  document.getElementById('authW').style.display = 'flex';
-}
-function closeAuth() {
-  document.getElementById('authW').style.display = 'none';
-}
-
 async function submitLogin() {
   var btn = document.getElementById('loginBtn');
   btn.disabled = true;
@@ -201,6 +192,14 @@ async function submitRegister() {
   window.location.href = roleHome(STATE.role);
 }
 
+async function guestLogin() {
+  var btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Memuat...';
+  await ensureData();
+  doLogin('general', null);
+}
+
 function doSearch(v) {
   if (v.trim()) {
     window.location.href = 'explore.html?q=' + encodeURIComponent(v.trim());
@@ -208,14 +207,17 @@ function doSearch(v) {
 }
 
 // === DATA CACHE (fix loading berulang) ===
+// Data disimpan di window agar halaman lain yang dibuka baru
+// bisa pakai localStorage cache selama 5 menit
 async function ensureData() {
-  if (STATE.umkm.length > 0) return;
+  if (STATE.umkm.length > 0) return; // sudah ada di memori
 
+  // Coba dari localStorage cache dulu
   try {
     var raw = localStorage.getItem('ipbmakan_cache');
     if (raw) {
       var c = JSON.parse(raw);
-      if (Date.now() - c.ts < 5 * 60 * 1000) {
+      if (Date.now() - c.ts < 5 * 60 * 1000) { // 5 menit
         STATE.umkm    = c.umkm    || [];
         STATE.menu    = c.menu    || [];
         STATE.videos  = c.videos  || [];
@@ -226,6 +228,7 @@ async function ensureData() {
     }
   } catch(e) {}
 
+  // Fetch dari Supabase
   var ok = await loadAllData();
   if (ok && STATE.umkm.length > 0) {
     try {
@@ -244,12 +247,13 @@ async function ensureData() {
 }
 
 // === HOME PAGE RENDER ===
+// PENTING: Gunakan string concatenation, BUKAN template literal ${}
+// agar tidak ada bug rendering di browser
 function renderHome() {
   var h     = new Date().getHours();
   var greet = h < 11 ? 'Selamat pagi' : h < 15 ? 'Selamat siang' : h < 18 ? 'Selamat sore' : 'Selamat malam';
   var nama  = (STATE.user && STATE.user.full_name) ? STATE.user.full_name.split(' ')[0] : '';
   var isMhs = STATE.role === 'student';
-  var isGuest = !STATE.user;
   var nWarung = STATE.umkm.length;
   var nMenu   = STATE.menu.length;
 
@@ -272,7 +276,7 @@ function renderHome() {
   // Hero band
   html += '<div class="hero">';
   html +=   '<div class="ht">';
-  html +=     '<div class="hg">' + greet + (nama ? ', ' + nama : (isGuest ? ', Tamu' : '')) + '</div>';
+  html +=     '<div class="hg">' + greet + (nama ? ', ' + nama : '') + '</div>';
   html +=     '<div class="hh">' + judulHero + '</div>';
   html +=     '<div class="hs">' + nWarung + ' warung aktif di Jl. Babakan Raya, IPB Dramaga</div>';
   html +=     '<div class="hst">';
@@ -285,21 +289,6 @@ function renderHome() {
   html +=   '</div>';
   html +=   pillDiskon;
   html += '</div>';
-
-  // ─── VIDEO PREVIEW SECTION (Trending Videos) ───
-  // Hanya tampil kalau ada video di STATE
-  if (STATE.videos && STATE.videos.length > 0) {
-    html += '<div class="vp-sec">';
-    html +=   '<div class="vp-head">';
-    html +=     '<div>';
-    html +=       '<div class="stit" style="margin-bottom:4px">Video Trending</div>';
-    html +=       '<div style="font-size:12px;color:var(--t3)">Tonton menu favorit warung Babakan Raya</div>';
-    html +=     '</div>';
-    html +=     '<a href="reels.html" class="btn b-gho b-sm">Lihat semua →</a>';
-    html +=   '</div>';
-    html +=   '<div class="vp-scroll" id="vpScroll"></div>';
-    html += '</div>';
-  }
 
   // Filter chips
   html += '<div class="chips" id="catBar">';
@@ -325,81 +314,6 @@ function renderHome() {
 
   renderFoodGrid('trendG', STATE.menu.slice(0, 8));
   renderFoodGrid('cheapG', STATE.menu.filter(function(m) { return m.price <= 12000; }).slice(0, 8));
-  renderVideoPreview();
-}
-
-// === VIDEO PREVIEW (horizontal scroll cards) ===
-function renderVideoPreview() {
-  var el = document.getElementById('vpScroll');
-  if (!el) return;
-
-  // Ambil max 6 video, prioritas yang punya video_url
-  var vids = STATE.videos.slice().sort(function(a, b) {
-    var aHas = a.video_url ? 1 : 0;
-    var bHas = b.video_url ? 1 : 0;
-    if (aHas !== bHas) return bHas - aHas;
-    return new Date(b.created_at) - new Date(a.created_at);
-  }).slice(0, 6);
-
-  var html = '';
-  for (var i = 0; i < vids.length; i++) {
-    var v = vids[i];
-    var u = null;
-    for (var j = 0; j < STATE.umkm.length; j++) {
-      if (STATE.umkm[j].id === v.umkm_id) { u = STATE.umkm[j]; break; }
-    }
-
-    var nama       = esc(v.food_name || v.title || (v.caption || '').slice(0, 32) || 'Video');
-    var umkmNama   = u ? esc(u.nama) : 'UMKM';
-    var harga      = v.food_price || v.tiktok_price || 0;
-    var thumb      = v.thumbnail_url || (u && (u.banner_url || u.image_url)) || '';
-    var hasVideo   = !!v.video_url;
-    var linkReels  = 'reels.html?v=' + encodeURIComponent(v.id);
-
-    html += '<a class="vp-card" href="' + linkReels + '">';
-    html +=   '<div class="vp-thumb">';
-    if (hasVideo) {
-      html += '<video class="vp-vid" src="' + v.video_url + '"';
-      if (thumb) html += ' poster="' + thumb + '"';
-      html += ' muted loop playsinline preload="metadata"></video>';
-    } else if (thumb) {
-      html += '<img src="' + thumb + '" alt="' + nama + '" loading="lazy">';
-    } else {
-      html += '<div class="vp-noimg"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>';
-    }
-    html +=     '<div class="vp-grad"></div>';
-    html +=     '<div class="vp-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
-    if (v.is_tiktok) {
-      html += '<div class="vp-badge"><span class="bx bx-n" style="background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.15)">TikTok</span></div>';
-    }
-    html +=     '<div class="vp-info">';
-    html +=       '<div class="vp-name">' + nama + '</div>';
-    html +=       '<div class="vp-row">';
-    html +=         '<span class="vp-umkm">' + umkmNama + '</span>';
-    if (harga > 0) {
-      html +=       '<span class="vp-price">' + rp(harga) + '</span>';
-    }
-    html +=       '</div>';
-    html +=     '</div>';
-    html +=   '</div>';
-    html += '</a>';
-  }
-
-  el.innerHTML = html;
-
-  // Hover preview di desktop: play video saat hover, pause saat leave
-  var cards = el.querySelectorAll('.vp-card');
-  cards.forEach(function(card) {
-    var vid = card.querySelector('.vp-vid');
-    if (!vid) return;
-    card.addEventListener('mouseenter', function() {
-      vid.play().catch(function() {});
-    });
-    card.addEventListener('mouseleave', function() {
-      vid.pause();
-      vid.currentTime = 0;
-    });
-  });
 }
 
 function renderFoodGrid(id, items) {
@@ -481,18 +395,13 @@ async function init() {
   restoreSession();
   await ensureData();
 
-  // Auto-guest mode: kalau belum login, set role 'general' dan langsung tampilin app
-  if (!STATE.user && STATE.role === 'general') {
-    // Sembunyiin auth, tampilkan tombol "Masuk" di topbar
-    document.getElementById('topLoginBtn').style.display = '';
+  if (STATE.user || STATE.role !== 'general') {
+    document.getElementById('authW').style.display = 'none';
+    document.getElementById('app').style.display   = 'flex';
+    renderSidebar();
+    renderHome();
+    updateCartBadge();
   }
-
-  // SELALU tampilkan app (auth jadi modal opsional)
-  document.getElementById('authW').style.display = 'none';
-  document.getElementById('app').style.display   = 'flex';
-  renderSidebar();
-  renderHome();
-  updateCartBadge();
 
   setTimeout(function() {
     document.getElementById('ldr').classList.add('out');
