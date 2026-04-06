@@ -6,7 +6,6 @@
 // - Mute toggle (default mute supaya autoplay diizinkan browser)
 // - Fallback ke background image kalau v.video_url belum ada
 // - Mobile-first
-// - Support ?v=VIDEO_ID query param untuk auto-scroll ke video tertentu
 
 async function init() {
   restoreSession();
@@ -15,13 +14,6 @@ async function init() {
   updateCartBadge();
   render();
   setTimeout(() => document.getElementById('ldr').classList.add('out'), 1200);
-
-  // Auto-scroll ke video dari query param ?v=ID
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetId = urlParams.get('v');
-  if (targetId) {
-    setTimeout(() => scrollToVideo(targetId), 300);
-  }
 }
 
 // State lokal untuk mute (shared antar semua video)
@@ -154,9 +146,10 @@ function render() {
   // Setup IntersectionObserver setelah DOM siap
   setupVideoObserver();
 
-  // Tap untuk play/pause manual
+  // Tap untuk play/pause manual + tap-to-unmute pertama kali
   document.querySelectorAll('.rl-r').forEach(card => {
     card.addEventListener('click', (e) => {
+      // Jangan trigger kalau klik tombol
       if (e.target.closest('button') || e.target.closest('a')) return;
       const vid = card.querySelector('.rl-vid');
       if (!vid) return;
@@ -180,9 +173,11 @@ function setupVideoObserver() {
       if (!vid) return;
 
       if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+        // Masuk viewport >= 60% — play
         vid.muted = REELS_MUTED;
         vid.play()
           .then(() => {
+            // Increment view count (fire-and-forget, hanya sekali per session per video)
             const vidId = card.dataset.vidId;
             if (vidId && !card.dataset.viewed) {
               card.dataset.viewed = '1';
@@ -190,9 +185,11 @@ function setupVideoObserver() {
             }
           })
           .catch(err => {
+            // Browser blokir autoplay (jarang kalau muted)
             console.warn('[reels] autoplay blocked:', err.message);
           });
       } else {
+        // Keluar viewport — pause + reset
         if (!vid.paused) {
           vid.pause();
           vid.currentTime = 0;
@@ -211,14 +208,18 @@ function setupVideoObserver() {
 function toggleMute(e) {
   e.stopPropagation();
   REELS_MUTED = !REELS_MUTED;
+
+  // Apply ke semua video
   document.querySelectorAll('.rl-vid').forEach(v => { v.muted = REELS_MUTED; });
+
+  // Update icon di semua tombol
   document.querySelectorAll('.rl-mute').forEach(btn => {
     btn.innerHTML = REELS_MUTED ? muteIcon() : soundIcon();
   });
 }
 window.toggleMute = toggleMute;
 
-// ── Scroll ke video tertentu (dipanggil dari sidebar / query param) ──
+// ── Scroll ke video tertentu (dipanggil dari sidebar) ────
 function scrollToVideo(id) {
   const card = document.querySelector(`.rl-r[data-vid-id="${id}"]`);
   if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -228,6 +229,7 @@ window.scrollToVideo = scrollToVideo;
 // ── Increment view count di Supabase (fire-and-forget) ───
 function incrementVideoView(videoId) {
   if (!videoId || !window.getSB) return;
+  // Ambil video lokal, update state + push ke DB
   const v = STATE.videos.find(x => x.id === videoId);
   if (v) v.views = (v.views || 0) + 1;
 
