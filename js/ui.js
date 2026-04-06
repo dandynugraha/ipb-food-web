@@ -49,7 +49,8 @@ const NAV_CFG = {
     { grp: 'Pesan Makanan', items: [
       { p: 'index.html',    label: 'Beranda',          icon: 'home'   },
       { p: 'explore.html',  label: 'Jelajahi Warung',  icon: 'search' },
-      { p: 'reels.html',    label: 'Video Feed',       icon: 'video'  },
+      { p: 'reels.html',    label: 'Reels UMKM',       icon: 'video'  },
+      { p: 'review.html',   label: 'Review IPB Makan', icon: 'star'   },
       { p: 'checkout.html', label: 'Pre-Order',        icon: 'cart'   },
     ]},
   ],
@@ -57,7 +58,8 @@ const NAV_CFG = {
     { grp: 'Jelajahi', items: [
       { p: 'index.html',    label: 'Beranda',          icon: 'home'   },
       { p: 'explore.html',  label: 'Jelajahi Warung',  icon: 'search' },
-      { p: 'reels.html',    label: 'Video Feed',       icon: 'video'  },
+      { p: 'reels.html',    label: 'Reels UMKM',       icon: 'video'  },
+      { p: 'review.html',   label: 'Review IPB Makan', icon: 'star'   },
       { p: 'checkout.html', label: 'Pesanan',          icon: 'cart'   },
     ]},
   ],
@@ -70,13 +72,19 @@ const NAV_CFG = {
     { grp: 'Alat', items: [
       { p: 'ai.html',       label: 'AI Asisten Gemini', icon: 'ai'     },
       { p: 'explore.html',  label: 'Lihat Kompetitor',  icon: 'search' },
+      { p: 'review.html',   label: 'Review IPB Makan',  icon: 'star'   },
     ]},
   ],
   admin: [
     { grp: 'Admin', items: [
-      { p: 'admin.html',   label: 'Panel Admin',    icon: 'shield' },
-      { p: 'index.html',   label: 'Lihat Aplikasi', icon: 'home'   },
-      { p: 'explore.html', label: 'Semua Warung',   icon: 'search' },
+      { p: 'admin.html',         label: 'Panel Admin',         icon: 'shield' },
+      { p: 'admin-tiktok.html',  label: 'Upload Review TikTok', icon: 'upload' },
+      { p: 'index.html',         label: 'Lihat Aplikasi',      icon: 'home'   },
+      { p: 'explore.html',       label: 'Semua Warung',        icon: 'search' },
+    ]},
+    { grp: 'Konten', items: [
+      { p: 'reels.html',  label: 'Reels UMKM',       icon: 'video' },
+      { p: 'review.html', label: 'Review IPB Makan', icon: 'star'  },
     ]},
   ],
 };
@@ -90,6 +98,8 @@ const NAV_ICONS = {
   edit:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.66V20a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg>`,
   ai:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
   shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  star:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  upload: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
 };
 
 // Render sidebar nav berdasarkan role
