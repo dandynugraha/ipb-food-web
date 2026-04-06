@@ -445,3 +445,176 @@ input:checked + .tsl::before { transform:translateX(16px); }
     }
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   PATCH 3 — Append ke akhir css/components.css
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Banner Video di Home (Reels + Review) ── */
+.vbn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.vbn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--r16);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  border: 1px solid transparent;
+}
+.vbn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sm);
+}
+.vbn-reels {
+  background: linear-gradient(135deg, var(--m), var(--md));
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.vbn-review {
+  background: linear-gradient(135deg, #1a0408 0%, #2d1810 50%, #1a0408 100%);
+  color: #fff;
+  border-color: rgba(201, 168, 76, 0.3);
+}
+.vbn-review::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+.vbn-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r12);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.vbn-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #fff;
+}
+.vbn-review .vbn-icon {
+  background: linear-gradient(135deg, var(--gold), var(--goldl));
+}
+.vbn-text {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.vbn-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  margin-bottom: 3px;
+}
+.vbn-review .vbn-tag {
+  color: var(--gold);
+  opacity: 1;
+}
+.vbn-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+.vbn-sub {
+  font-size: 11px;
+  opacity: 0.65;
+  line-height: 1.35;
+}
+.vbn-arrow {
+  font-size: 22px;
+  font-weight: 300;
+  opacity: 0.6;
+  transition: transform 0.2s, opacity 0.2s;
+  position: relative;
+  z-index: 1;
+}
+.vbn:hover .vbn-arrow {
+  transform: translateX(4px);
+  opacity: 1;
+}
+
+/* Mobile: stack jadi 1 kolom */
+@media (max-width: 768px) {
+  .vbn-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .vbn {
+    padding: 14px 16px;
+  }
+  .vbn-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .vbn-title {
+    font-size: 14px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   REVIEW PAGE — Layout dasar (kalau belum ada dari patch 1)
+   ═══════════════════════════════════════════════════════ */
+
+/* Pastikan rl-layout ada (dari patch 1, cek dulu apakah belum) */
+.rl-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+}
+.rl-side {
+  background: var(--s);
+  border: 1px solid var(--b);
+  border-radius: var(--r20);
+  padding: 20px;
+  height: calc(100vh - 130px);
+  overflow-y: auto;
+}
+
+/* Mobile reels/review */
+@media (max-width: 1100px) {
+  .rl-layout {
+    grid-template-columns: 1fr;
+  }
+  .rl-side {
+    display: none;
+  }
+}
+@media (max-width: 768px) {
+  .pg:has(.rl-layout) {
+    padding: 0 !important;
+  }
+  .pg:has(.rl-layout) .ph {
+    display: none;
+  }
+  .rf {
+    border-radius: 0 !important;
+    height: calc(100vh - 56px) !important;
+  }
+  .rl-r {
+    height: calc(100vh - 56px) !important;
+  }
+}
