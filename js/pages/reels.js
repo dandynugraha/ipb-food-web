@@ -1,11 +1,9 @@
 // ─── js/pages/reels.js ────────────────────────────────────
-// Video Feed TikTok-style:
-// - Auto-play saat masuk viewport (IntersectionObserver)
-// - Auto-pause saat keluar viewport
-// - Tap untuk play/pause manual
-// - Mute toggle (default mute supaya autoplay diizinkan browser)
-// - Fallback ke background image kalau v.video_url belum ada
-// - Mobile-first
+// Video Feed TikTok-style + Engagement (Like, Comment, Share)
+// Auto-play via IntersectionObserver, mobile-first
+
+let REELS_MUTED = true;
+let REELS_OBSERVER = null;
 
 async function init() {
   restoreSession();
@@ -13,27 +11,38 @@ async function init() {
   renderSidebar();
   updateCartBadge();
   render();
-  setTimeout(() => document.getElementById('ldr').classList.add('out'), 1200);
-}
 
-// State lokal untuk mute (shared antar semua video)
-let REELS_MUTED = true;
-let REELS_OBSERVER = null;
+  // Sync likes status dari server (yang udah kamu like sebelumnya)
+  if (typeof syncLikesFromServer === 'function' && STATE.videos?.length) {
+    await syncLikesFromServer(STATE.videos.map(v => v.id));
+    refreshLikeUI();
+  }
+
+  setTimeout(() => document.getElementById('ldr').classList.add('out'), 1200);
+
+  // Deep-link: ?v=ID auto scroll ke video
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('v');
+  if (targetId) setTimeout(() => scrollToVideo(targetId), 400);
+}
 
 function render() {
   const el = document.getElementById('pageContent');
 
-  if (!STATE.videos.length) {
+  // Filter: hanya video reels UMKM (bukan official)
+  const reelsVideos = (STATE.videos || []).filter(v => !v.is_official);
+
+  if (!reelsVideos.length) {
     el.innerHTML = `
-      <div class="ph"><div><div class="ptit">Video Feed</div><div class="psub">Konten video UMKM Babakan Raya</div></div></div>
-      ${emptyState('Belum ada video. UMKM bisa upload lewat halaman Video & TikTok.')}`;
+      <div class="ph"><div><div class="ptit">Reels UMKM</div><div class="psub">Konten video UMKM Babakan Raya</div></div></div>
+      ${emptyState('Belum ada video reels. UMKM bisa upload lewat halaman Video & TikTok.')}`;
     return;
   }
 
   const BG = ['#1a0408','#081008','#080814','#140c08','#080e16'];
 
   el.innerHTML = `
-    <div class="ph"><div><div class="ptit">Video Feed</div><div class="psub">Konten video UMKM Babakan Raya · Scroll untuk video berikutnya</div></div></div>
+    <div class="ph"><div><div class="ptit">Reels UMKM</div><div class="psub">Konten video UMKM Babakan Raya · Scroll untuk video berikutnya</div></div></div>
     <div class="rl-layout">
       <div class="rf" id="reelsFeed"></div>
       <div class="rl-side">
@@ -42,27 +51,20 @@ function render() {
       </div>
     </div>`;
 
-  document.getElementById('reelsFeed').innerHTML = STATE.videos.map((v, i) => {
+  document.getElementById('reelsFeed').innerHTML = reelsVideos.map((v, i) => {
     const u   = STATE.umkm.find(u => u.id === v.umkm_id);
     const bg  = v.thumbnail_url || u?.banner_url || u?.image_url;
     const hasVideo = !!v.video_url;
     const isTT = v.is_tiktok;
+    const liked = typeof isVideoLiked === 'function' && isVideoLiked(v.id);
 
     return `<div class="rl-r" data-vid-id="${v.id}" data-vid-idx="${i}" style="background:${BG[i % BG.length]}">
       ${bg ? `<div class="rl-bg" style="background-image:url('${bg}')"></div>` : ''}
 
       ${hasVideo ? `
-        <video
-          class="rl-vid"
-          data-vid-idx="${i}"
-          src="${v.video_url}"
+        <video class="rl-vid" data-vid-idx="${i}" src="${v.video_url}"
           ${v.thumbnail_url ? `poster="${v.thumbnail_url}"` : ''}
-          loop
-          muted
-          playsinline
-          webkit-playsinline
-          preload="metadata"
-        ></video>
+          loop muted playsinline webkit-playsinline preload="metadata"></video>
       ` : ''}
 
       <div class="rl-gr"></div>
@@ -86,7 +88,7 @@ function render() {
         <span class="bx bx-n" style="background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.15)">TikTok</span>
       </div>` : ''}
 
-      <div class="rl-prog">${STATE.videos.map((_,j) => `<div class="rp ${j<=i?'on':''}"></div>`).join('')}</div>
+      <div class="rl-prog">${reelsVideos.map((_,j) => `<div class="rp ${j<=i?'on':''}"></div>`).join('')}</div>
 
       <div class="rl-ct">
         <div class="rl-me">
@@ -107,26 +109,35 @@ function render() {
         <button class="rl-cta" onclick="event.stopPropagation();location.href='explore.html#${v.umkm_id}'">Pesan Sekarang</button>
       </div>
 
+      <!-- ENGAGEMENT BUTTONS -->
       <div class="rl-ac">
         <div class="ra">
-          <div class="ra-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
-          <div class="ra-l">${fn(v.likes || 0)}</div>
+          <button class="ra-i ra-btn ${liked ? 'liked' : ''}" onclick="event.stopPropagation();toggleLike('${v.id}', this)" aria-label="Like">
+            <svg viewBox="0 0 24 24" fill="${liked ? '#ff3366' : 'none'}" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </button>
+          <div class="ra-l" data-raw="${v.likes || 0}">${fn(v.likes || 0)}</div>
         </div>
         <div class="ra">
-          <div class="ra-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-          <div class="ra-l">${fn(v.comments_count || 0)}</div>
+          <button class="ra-i ra-btn" onclick="event.stopPropagation();openComments('${v.id}')" aria-label="Comment">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </button>
+          <div class="ra-l" data-raw="${v.comments_count || 0}">${fn(v.comments_count || 0)}</div>
         </div>
         <div class="ra">
-          <div class="ra-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
-          <div class="ra-l">${fn(v.shares || 0)}</div>
+          <button class="ra-i ra-btn" onclick="event.stopPropagation();openShare('${v.id}')" aria-label="Share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+          <div class="ra-l" data-raw="${v.shares || 0}">${fn(v.shares || 0)}</div>
         </div>
       </div>
     </div>`;
   }).join('');
 
-  // Sidebar list video lain
+  // Sidebar list
   const side = document.getElementById('reelsSide');
-  if (side) side.innerHTML = STATE.videos.map(v => {
+  if (side) side.innerHTML = reelsVideos.map(v => {
     const u = STATE.umkm.find(u => u.id === v.umkm_id);
     return `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);cursor:pointer"
         onclick="scrollToVideo('${v.id}')">
@@ -143,115 +154,88 @@ function render() {
     </div>`;
   }).join('');
 
-  // Setup IntersectionObserver setelah DOM siap
   setupVideoObserver();
 
-  // Tap untuk play/pause manual + tap-to-unmute pertama kali
+  // Tap untuk play/pause manual
   document.querySelectorAll('.rl-r').forEach(card => {
     card.addEventListener('click', (e) => {
-      // Jangan trigger kalau klik tombol
       if (e.target.closest('button') || e.target.closest('a')) return;
       const vid = card.querySelector('.rl-vid');
       if (!vid) return;
-      if (vid.paused) {
-        vid.play().catch(() => {});
-      } else {
-        vid.pause();
-      }
+      if (vid.paused) vid.play().catch(() => {});
+      else vid.pause();
     });
+  });
+}
+
+// Refresh UI like state setelah sync dari server
+function refreshLikeUI() {
+  document.querySelectorAll('.rl-r').forEach(card => {
+    const vidId = card.dataset.vidId;
+    if (!vidId) return;
+    const liked = typeof isVideoLiked === 'function' && isVideoLiked(vidId);
+    const likeBtn = card.querySelector('.ra-btn');
+    const heartSvg = likeBtn?.querySelector('svg');
+    if (heartSvg) heartSvg.setAttribute('fill', liked ? '#ff3366' : 'none');
+    if (likeBtn) likeBtn.classList.toggle('liked', liked);
   });
 }
 
 // ── IntersectionObserver: auto play/pause ────────────────
 function setupVideoObserver() {
   if (REELS_OBSERVER) REELS_OBSERVER.disconnect();
-
   REELS_OBSERVER = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const card = entry.target;
       const vid  = card.querySelector('.rl-vid');
       if (!vid) return;
-
       if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-        // Masuk viewport >= 60% — play
         vid.muted = REELS_MUTED;
-        vid.play()
-          .then(() => {
-            // Increment view count (fire-and-forget, hanya sekali per session per video)
-            const vidId = card.dataset.vidId;
-            if (vidId && !card.dataset.viewed) {
-              card.dataset.viewed = '1';
-              incrementVideoView(vidId);
-            }
-          })
-          .catch(err => {
-            // Browser blokir autoplay (jarang kalau muted)
-            console.warn('[reels] autoplay blocked:', err.message);
-          });
-      } else {
-        // Keluar viewport — pause + reset
-        if (!vid.paused) {
-          vid.pause();
-          vid.currentTime = 0;
-        }
+        vid.play().then(() => {
+          const vidId = card.dataset.vidId;
+          if (vidId && !card.dataset.viewed) {
+            card.dataset.viewed = '1';
+            incrementVideoView(vidId);
+          }
+        }).catch(() => {});
+      } else if (!vid.paused) {
+        vid.pause();
+        vid.currentTime = 0;
       }
     });
-  }, {
-    root: document.getElementById('reelsFeed'),
-    threshold: [0, 0.6, 1],
-  });
+  }, { root: document.getElementById('reelsFeed'), threshold: [0, 0.6, 1] });
 
   document.querySelectorAll('.rl-r').forEach(card => REELS_OBSERVER.observe(card));
 }
 
-// ── Mute toggle (apply ke semua video) ───────────────────
 function toggleMute(e) {
   e.stopPropagation();
   REELS_MUTED = !REELS_MUTED;
-
-  // Apply ke semua video
   document.querySelectorAll('.rl-vid').forEach(v => { v.muted = REELS_MUTED; });
-
-  // Update icon di semua tombol
   document.querySelectorAll('.rl-mute').forEach(btn => {
     btn.innerHTML = REELS_MUTED ? muteIcon() : soundIcon();
   });
 }
 window.toggleMute = toggleMute;
 
-// ── Scroll ke video tertentu (dipanggil dari sidebar) ────
 function scrollToVideo(id) {
   const card = document.querySelector(`.rl-r[data-vid-id="${id}"]`);
   if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 window.scrollToVideo = scrollToVideo;
 
-// ── Increment view count di Supabase (fire-and-forget) ───
 function incrementVideoView(videoId) {
   if (!videoId || !window.getSB) return;
-  // Ambil video lokal, update state + push ke DB
   const v = STATE.videos.find(x => x.id === videoId);
   if (v) v.views = (v.views || 0) + 1;
-
-  getSB().from('videos')
-    .update({ views: v?.views || 1 })
-    .eq('id', videoId)
-    .then(() => {})
-    .catch(() => {});
+  getSB().from('videos').update({ views: v?.views || 1 }).eq('id', videoId).then(() => {});
 }
 
-// ── Icons ────────────────────────────────────────────────
 function muteIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-    <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
-  </svg>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
 }
 function soundIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-    <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
-  </svg>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>`;
 }
 
 init();
