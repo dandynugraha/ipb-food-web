@@ -1,11 +1,11 @@
 // ─── js/pages/review.js ──────────────────────────────────
 // Review IPB Makan — feed TikTok-style untuk video official admin
-// Hanya menampilkan video dengan is_official = true
-// Mirip reels.js tapi dengan branding IPB Makan + filter berbeda
+// + Engagement (Like, Comment, Share)
 
 let REVIEW_MUTED = true;
 let REVIEW_OBSERVER = null;
 let REVIEW_VIDEOS = [];
+window.REVIEW_VIDEOS = REVIEW_VIDEOS;
 
 async function init() {
   restoreSession();
@@ -14,14 +14,20 @@ async function init() {
   updateCartBadge();
   await loadOfficialVideos();
   render();
+
+  // Sync likes status dari server
+  if (typeof syncLikesFromServer === 'function' && REVIEW_VIDEOS.length) {
+    await syncLikesFromServer(REVIEW_VIDEOS.map(v => v.id));
+    refreshLikeUI();
+  }
+
   setTimeout(() => document.getElementById('ldr').classList.add('out'), 1200);
 
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('v');
-  if (targetId) setTimeout(() => scrollToVideo(targetId), 300);
+  if (targetId) setTimeout(() => scrollToVideo(targetId), 400);
 }
 
-// Fetch video official langsung dari Supabase (filter is_official=true)
 async function loadOfficialVideos() {
   try {
     const sb = getSB();
@@ -32,9 +38,11 @@ async function loadOfficialVideos() {
       .order('created_at', { ascending: false });
     if (error) throw error;
     REVIEW_VIDEOS = data || [];
+    window.REVIEW_VIDEOS = REVIEW_VIDEOS;
   } catch (e) {
     console.error('[review] loadOfficialVideos:', e);
     REVIEW_VIDEOS = [];
+    window.REVIEW_VIDEOS = REVIEW_VIDEOS;
   }
 }
 
@@ -74,25 +82,21 @@ function render() {
       </div>
     </div>`;
 
-  // Background gold/maroon untuk vibe IPB Makan
   const BG = ['#1a0408','#080814','#140c08','#080e16','#1a0408'];
 
   document.getElementById('reviewFeed').innerHTML = REVIEW_VIDEOS.map((v, i) => {
     const u = STATE.umkm.find(u => u.id === v.umkm_id);
     const bg = v.thumbnail_url || u?.banner_url || u?.image_url;
     const hasVideo = !!v.video_url;
+    const liked = typeof isVideoLiked === 'function' && isVideoLiked(v.id);
 
     return `<div class="rl-r" data-vid-id="${v.id}" data-vid-idx="${i}" style="background:${BG[i % BG.length]}">
       ${bg ? `<div class="rl-bg" style="background-image:url('${bg}')"></div>` : ''}
 
       ${hasVideo ? `
-        <video
-          class="rl-vid"
-          data-vid-idx="${i}"
-          src="${v.video_url}"
+        <video class="rl-vid" data-vid-idx="${i}" src="${v.video_url}"
           ${v.thumbnail_url ? `poster="${v.thumbnail_url}"` : ''}
-          loop muted playsinline webkit-playsinline preload="metadata"
-        ></video>
+          loop muted playsinline webkit-playsinline preload="metadata"></video>
       ` : ''}
 
       <div class="rl-gr"></div>
@@ -112,7 +116,6 @@ function render() {
         </div>
       ` : ''}
 
-      <!-- Badge Official di pojok kanan atas -->
       <div style="position:absolute;top:14px;right:14px;z-index:3">
         <span class="bx" style="background:linear-gradient(135deg,var(--gold),var(--goldl));color:#fff;font-weight:800;border:1px solid rgba(255,255,255,.2)">★ IPB Makan Official</span>
       </div>
@@ -143,31 +146,36 @@ function render() {
 
       <div class="rl-ac">
         <div class="ra">
-          <div class="ra-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
-          <div class="ra-l">${fn(v.likes || 0)}</div>
+          <button class="ra-i ra-btn ${liked ? 'liked' : ''}" onclick="event.stopPropagation();toggleLike('${v.id}', this)" aria-label="Like">
+            <svg viewBox="0 0 24 24" fill="${liked ? '#ff3366' : 'none'}" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </button>
+          <div class="ra-l" data-raw="${v.likes || 0}">${fn(v.likes || 0)}</div>
         </div>
         <div class="ra">
-          <div class="ra-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-          <div class="ra-l">${fn(v.comments_count || 0)}</div>
+          <button class="ra-i ra-btn" onclick="event.stopPropagation();openComments('${v.id}')" aria-label="Comment">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </button>
+          <div class="ra-l" data-raw="${v.comments_count || 0}">${fn(v.comments_count || 0)}</div>
         </div>
         <div class="ra">
-          <div class="ra-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
-          <div class="ra-l">${fn(v.shares || 0)}</div>
+          <button class="ra-i ra-btn" onclick="event.stopPropagation();openShare('${v.id}')" aria-label="Share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+          <div class="ra-l" data-raw="${v.shares || 0}">${fn(v.shares || 0)}</div>
         </div>
       </div>
     </div>`;
   }).join('');
 
-  // Sidebar list
   const side = document.getElementById('reviewSide');
   if (side) side.innerHTML = REVIEW_VIDEOS.map(v => {
     const u = STATE.umkm.find(u => u.id === v.umkm_id);
     return `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);cursor:pointer"
         onclick="scrollToVideo('${v.id}')">
       <div style="width:56px;height:70px;border-radius:var(--r8);background:linear-gradient(135deg,var(--m),var(--md));flex-shrink:0;overflow:hidden;position:relative">
-        ${v.thumbnail_url
-          ? `<img src="${v.thumbnail_url}" style="width:100%;height:100%;object-fit:cover" loading="lazy">`
-          : ''}
+        ${v.thumbnail_url ? `<img src="${v.thumbnail_url}" style="width:100%;height:100%;object-fit:cover" loading="lazy">` : ''}
         <div style="position:absolute;top:4px;right:4px;width:14px;height:14px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center">
           <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         </div>
@@ -182,7 +190,6 @@ function render() {
 
   setupReviewObserver();
 
-  // Tap untuk pause/play manual
   document.querySelectorAll('#reviewFeed .rl-r').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('button') || e.target.closest('a')) return;
@@ -191,6 +198,18 @@ function render() {
       if (vid.paused) vid.play().catch(() => {});
       else vid.pause();
     });
+  });
+}
+
+function refreshLikeUI() {
+  document.querySelectorAll('#reviewFeed .rl-r').forEach(card => {
+    const vidId = card.dataset.vidId;
+    if (!vidId) return;
+    const liked = typeof isVideoLiked === 'function' && isVideoLiked(vidId);
+    const likeBtn = card.querySelector('.ra-btn');
+    const heartSvg = likeBtn?.querySelector('svg');
+    if (heartSvg) heartSvg.setAttribute('fill', liked ? '#ff3366' : 'none');
+    if (likeBtn) likeBtn.classList.toggle('liked', liked);
   });
 }
 
@@ -203,14 +222,13 @@ function setupReviewObserver() {
       if (!vid) return;
       if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
         vid.muted = REVIEW_MUTED;
-        vid.play().catch(err => console.warn('[review] autoplay blocked:', err.message));
+        vid.play().catch(() => {});
       } else if (!vid.paused) {
         vid.pause();
         vid.currentTime = 0;
       }
     });
   }, { root: document.getElementById('reviewFeed'), threshold: [0, 0.6, 1] });
-
   document.querySelectorAll('#reviewFeed .rl-r').forEach(card => REVIEW_OBSERVER.observe(card));
 }
 
