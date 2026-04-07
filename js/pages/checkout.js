@@ -1,18 +1,38 @@
 // ─── js/pages/checkout.js ─────────────────────────────────
+// Checkout dengan order beneran insert ke Supabase
+// + Pilih driver Poki random + tampilkan info lengkap
+
+let SELECTED_DRIVER = null;
+let LAST_ORDER_NUMBER = null;
 
 async function init() {
   restoreSession();
   await ensureData();
   renderSidebar();
   updateCartBadge();
+  pickRandomDriver();
   render();
   setTimeout(() => document.getElementById('ldr').classList.add('out'), 1200);
 }
 
+function pickRandomDriver() {
+  const available = (STATE.drivers || []).filter(d => d.is_available);
+  if (!available.length) { SELECTED_DRIVER = null; return; }
+  // Pilih random driver yang tersedia
+  SELECTED_DRIVER = available[Math.floor(Math.random() * available.length)];
+}
+
 function render() {
   const { items, sub, disc, poki, total } = cartTotal();
-  const drv = getDriver();
-  const umkmPhone = items[0]?.[1]?.umkmPhone || '—';
+  const drv = SELECTED_DRIVER;
+  const umkmId = items[0]?.[1]?.umkmId;
+  const umkm = umkmId ? STATE.umkm.find(u => u.id === umkmId) : null;
+  const umkmPhone = umkm?.phone || items[0]?.[1]?.umkmPhone || '—';
+
+  // Generate queue number sekali (kalau belum)
+  if (!LAST_ORDER_NUMBER) {
+    LAST_ORDER_NUMBER = 'A' + (Math.floor(Math.random() * 50) + 30);
+  }
 
   const drvCard = STATE.delivery === 'poki' && drv ? `
     <div class="seller-box">
@@ -24,13 +44,13 @@ function render() {
     </div>
     <div class="pdc">
       <div class="pdc-av">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/>
-        </svg>
+        ${drv.photo_url
+          ? `<img src="${drv.photo_url}" alt="${esc(drv.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>`}
       </div>
       <div style="flex:1">
-        <div class="pdc-n">${drv.name}</div>
-        <div class="pdc-m">${drv.vehicle||'Motor'} · ${drv.plate_number||'—'} · ⭐ ${drv.rating||'—'}</div>
+        <div class="pdc-n">${esc(drv.name)} <span style="font-size:10px;color:var(--gold)">★ ${drv.rating || '4.9'}</span></div>
+        <div class="pdc-m">${esc(drv.vehicle || 'Motor')} · ${esc(drv.plate_number || '—')} · ${drv.total_deliveries || 0} pengiriman</div>
         <div class="pdc-ph">
           <a href="tel:${drv.phone}" class="phlink">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -44,6 +64,7 @@ function render() {
       <div style="text-align:right">
         <div class="bx bx-gr">Tersedia</div>
         <div style="font-size:10px;color:var(--t3);margin-top:4px">~25 menit</div>
+        <button class="btn b-gho b-sm" style="margin-top:6px;font-size:10px;padding:4px 8px" onclick="changeDriver()">Ganti Driver</button>
       </div>
     </div>`
   : STATE.delivery === 'poki'
@@ -64,11 +85,10 @@ function render() {
 
     <div class="col">
       <div>
-        <!-- Nomor antrean -->
         <div class="card cp" style="margin-bottom:16px">
           <div class="ssm">Nomor Antrean Digital Anda</div>
           <div class="qb-box">
-            <div class="qnum">#A47</div>
+            <div class="qnum">#${LAST_ORDER_NUMBER}</div>
             <div class="ql">Estimasi persiapan</div>
             <div class="qeta">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -79,7 +99,6 @@ function render() {
           </div>
         </div>
 
-        <!-- Metode pengiriman -->
         <div class="card cp" style="margin-bottom:16px">
           <div class="ssm">Metode Pengambilan</div>
           <div class="dtg">
@@ -98,11 +117,10 @@ function render() {
           ${STATE.delivery === 'poki' ? `
             <div class="fg" style="margin-top:14px;margin-bottom:0">
               <label class="fl">Alamat Pengiriman</label>
-              <input type="text" class="fi" placeholder="Gedung, Fakultas, Asrama, atau nama kos">
+              <input type="text" class="fi" id="dlAddr" placeholder="Gedung, Fakultas, Asrama, atau nama kos">
             </div>` : ''}
         </div>
 
-        <!-- Waktu -->
         <div class="card cp" style="margin-bottom:16px">
           <div class="ssm">Pilih Waktu Pengambilan</div>
           <div class="tsg">
@@ -114,7 +132,6 @@ function render() {
           </div>
         </div>
 
-        <!-- Ringkasan -->
         <div class="card cp">
           <div class="ssm">Ringkasan Pesanan</div>
           ${items.length
@@ -133,7 +150,6 @@ function render() {
         </div>
       </div>
 
-      <!-- Panel kanan -->
       <div>
         <div class="card cp" style="position:sticky;top:80px">
           <div class="ssm">Konfirmasi Pembayaran</div>
@@ -148,8 +164,8 @@ function render() {
             ${poki ? `<div class="or"><span>Ongkir Poki</span><span>${rp(poki)}</span></div>` : ''}
             <div class="or fn"><span>Total</span><span style="color:var(--m)">${rp(total)}</span></div>
           </div>
-          <button class="pbtn" style="margin-top:14px"
-            ${!items.length ? 'disabled' : ''} onclick="confirm()">
+          <button class="pbtn" id="confirmBtn" style="margin-top:14px"
+            ${!items.length ? 'disabled' : ''} onclick="confirmOrder()">
             ${items.length ? `Konfirmasi & Bayar · ${rp(total)}` : 'Keranjang kosong'}
           </button>
           <div style="text-align:center;margin-top:9px;font-size:11px;color:var(--t3)">
@@ -160,27 +176,114 @@ function render() {
     </div>`;
 }
 
-function setDel(t) { STATE.delivery = t; saveSession(); render(); }
+function setDel(t) {
+  STATE.delivery = t;
+  saveSession();
+  if (t === 'poki' && !SELECTED_DRIVER) pickRandomDriver();
+  render();
+}
+window.setDel = setDel;
+
+function changeDriver() {
+  pickRandomDriver();
+  render();
+  toast('Driver diganti', 'info');
+}
+window.changeDriver = changeDriver;
 
 function pickT(el, t) {
   STATE.selectedTime = t;
   document.querySelectorAll('.ts:not(.tsf)').forEach(e => e.classList.remove('tsa'));
   el.classList.add('tsa');
 }
+window.pickT = pickT;
 
-async function confirm() {
-  const btn = event.target;
+// ─── REAL CONFIRM: insert ke orders + order_items ──────
+async function confirmOrder() {
+  const btn = document.getElementById('confirmBtn');
+  if (!btn) return;
   btn.disabled = true;
   btn.textContent = 'Memproses...';
   btn.style.cssText += 'background:var(--s2);color:var(--t3);box-shadow:none;';
-  await new Promise(r => setTimeout(r, 1800));
-  STATE.cart = {};
-  updateCartBadge();
-  saveSession();
-  btn.style.cssText += 'background:var(--green);color:#fff;';
-  btn.textContent = '✓ Dikonfirmasi! Antrean #A47';
-  toast('Pesanan berhasil! Siap dalam ±15 menit. Nomor antrean #A47', 'ok');
-  setTimeout(render, 300);
+
+  const { items, sub, disc, poki, total } = cartTotal();
+  if (!items.length) { btn.disabled = false; return; }
+
+  const firstItem = items[0][1];
+  const umkmId = firstItem.umkmId;
+  const umkm = umkmId ? STATE.umkm.find(u => u.id === umkmId) : null;
+
+  try {
+    const sb = getSB();
+    const queueNum = LAST_ORDER_NUMBER || ('A' + (Math.floor(Math.random() * 50) + 30));
+
+    // 1. Insert order
+    const orderPayload = {
+      umkm_id: umkmId,
+      status: 'pending',
+      queue_number: queueNum,
+      total_price: sub,
+      discount: disc,
+      final_price: total,
+      delivery_type: STATE.delivery,
+      delivery_address: STATE.delivery === 'poki' ? (document.getElementById('dlAddr')?.value || null) : null,
+      buyer_role: STATE.role,
+      nim: STATE.user?.nim || null,
+      umkm_phone: umkm?.phone || null,
+      points_earned: Math.floor(total / 1000),
+    };
+
+    // Driver info kalau poki
+    if (STATE.delivery === 'poki' && SELECTED_DRIVER) {
+      orderPayload.poki_driver_id = SELECTED_DRIVER.id;
+      orderPayload.poki_driver_name = SELECTED_DRIVER.name;
+      orderPayload.poki_driver_phone = SELECTED_DRIVER.phone;
+      orderPayload.poki_driver_photo = SELECTED_DRIVER.photo_url;
+      orderPayload.poki_eta_minutes = 25;
+      orderPayload.poki_status = 'waiting';
+    }
+
+    const { data: orderData, error: orderErr } = await sb.from('orders').insert(orderPayload).select().single();
+    if (orderErr) throw orderErr;
+
+    // 2. Insert order_items
+    const itemsPayload = items.map(([menuId, i]) => ({
+      order_id: orderData.id,
+      menu_id: menuId.startsWith('new-') || menuId.startsWith('demo-') ? null : menuId,
+      menu_name: i.name,
+      quantity: i.qty,
+      unit_price: i.price,
+      subtotal: i.price * i.qty,
+    }));
+
+    const { error: itemsErr } = await sb.from('order_items').insert(itemsPayload);
+    if (itemsErr) {
+      console.error('[order_items insert]', itemsErr);
+      // Order udah masuk, items gagal — tetap lanjut
+    }
+
+    // Sukses
+    STATE.cart = {};
+    updateCartBadge();
+    saveSession();
+
+    btn.style.cssText += 'background:var(--green);color:#fff;';
+    btn.textContent = `✓ Dikonfirmasi! Antrean #${queueNum}`;
+    toast(`Pesanan berhasil disimpan! Antrean #${queueNum}`, 'ok');
+
+    // Generate antrean baru untuk order berikutnya
+    LAST_ORDER_NUMBER = null;
+    setTimeout(render, 800);
+  } catch(e) {
+    console.error('[confirmOrder]', e);
+    toast('Gagal simpan order: ' + (e.message || 'unknown'), 'err');
+    btn.disabled = false;
+    btn.textContent = `Konfirmasi & Bayar · ${rp(total)}`;
+    btn.style.cssText = '';
+  }
 }
+window.confirmOrder = confirmOrder;
+// Backward compat
+window.confirm = confirmOrder;
 
 init();
