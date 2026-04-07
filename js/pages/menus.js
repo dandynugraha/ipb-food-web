@@ -1,12 +1,29 @@
 // ─── js/pages/menus.js ────────────────────────────────────
+// CRUD beneran ke Supabase (tabel menu)
+
+let EDITING_MENU_ID = null;
 
 async function init() {
   if (!requireAuth(['umkm', 'admin'])) return;
   await ensureData();
+  // Re-fetch menu langsung dari Supabase biar data fresh
+  await reloadMenuFromDB();
   renderSidebar();
   updateCartBadge();
   render();
   setTimeout(() => document.getElementById('ldr').classList.add('out'), 1200);
+}
+
+async function reloadMenuFromDB() {
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.from('menu').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    STATE.menu = data || [];
+    if (window.clearDataCache) clearDataCache();
+  } catch(e) {
+    console.error('[reloadMenu]', e);
+  }
 }
 
 function render() {
@@ -24,7 +41,6 @@ function render() {
       </button>
     </div>
 
-    <!-- Stats -->
     <div class="g4" style="margin-bottom:22px">
       <div class="metric"><div class="mv" style="color:var(--m)">${myMenu.length}</div><div class="ml">Total Menu</div></div>
       <div class="metric"><div class="mv" style="color:var(--m)">${myMenu.filter(m=>m.is_available).length}</div><div class="ml">Menu Aktif</div></div>
@@ -32,7 +48,6 @@ function render() {
       <div class="metric"><div class="mv" style="color:var(--m)">${[...new Set(myMenu.map(m=>m.category))].length || 0}</div><div class="ml">Kategori</div></div>
     </div>
 
-    <!-- Filter -->
     <div class="chips" id="mChips">
       <div class="chip on" onclick="filterCat(this,'all')">Semua</div>
       <div class="chip" onclick="filterCat(this,'Makanan')">Makanan</div>
@@ -43,7 +58,6 @@ function render() {
 
     <div class="card"><div id="menuList" style="padding:0 20px"></div></div>
 
-    <!-- Modal tambah/edit menu -->
     <div class="mbk" id="mMenu" onclick="if(event.target===this)closeModal('mMenu')">
       <div class="modal">
         <div class="mh">
@@ -51,11 +65,11 @@ function render() {
           <button class="mx" onclick="closeModal('mMenu')">✕</button>
         </div>
         <div class="mb">
-          <div class="fg"><label class="fl">Nama Menu</label><input type="text" class="fi" id="mN" placeholder="Ayam Bakar Bumbu Rujak"></div>
+          <div class="fg"><label class="fl">Nama Menu *</label><input type="text" class="fi" id="mN" placeholder="Ayam Bakar Bumbu Rujak"></div>
           <div class="fg"><label class="fl">Deskripsi</label><textarea class="fi" id="mD" rows="2" placeholder="Deskripsi singkat bahan dan cita rasa" style="resize:none"></textarea></div>
           <div class="r2">
             <div class="fg"><label class="fl">Harga Mahasiswa (Rp)</label><input type="number" class="fi" id="mPS" placeholder="16000"></div>
-            <div class="fg"><label class="fl">Harga Umum (Rp)</label><input type="number" class="fi" id="mPG" placeholder="18000"></div>
+            <div class="fg"><label class="fl">Harga Umum (Rp) *</label><input type="number" class="fi" id="mPG" placeholder="18000"></div>
           </div>
           <div class="fg">
             <label class="fl">Kategori</label>
@@ -63,33 +77,15 @@ function render() {
               <option>Makanan</option><option>Minuman</option><option>Paket</option><option>Tambahan</option>
             </select>
           </div>
-
-          <!-- Drag & Drop Upload -->
           <div class="fg">
-            <label class="fl">Foto Menu — Drag &amp; Drop atau Klik</label>
-            <div class="uz" id="uzEl"
-              ondragover="doDrag(event,true)"
-              ondragleave="doDrag(event,false)"
-              ondrop="doDrop(event)"
-              onclick="document.getElementById('fiEl').click()">
-              <div class="uz-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-              <div class="uz-t">Drag &amp; drop foto atau klik untuk memilih</div>
-              <div class="uz-s">PNG, JPG, WEBP — maks. 5MB per file</div>
-              <div class="upv" id="upvEl"></div>
-            </div>
-            <input type="file" id="fiEl" accept="image/*" multiple onchange="doFileSelect(this)">
+            <label class="fl">URL Foto Menu</label>
+            <input type="text" class="fi" id="mPU" placeholder="https://images.unsplash.com/...">
+            <div class="fi-h">Boleh kosong, akan pakai placeholder default</div>
           </div>
-
-          <div class="fg">
-            <label class="fl">Atau: URL Foto Sementara (Unsplash placeholder)</label>
-            <input type="text" class="fi" id="mPU" placeholder="https://images.unsplash.com/photo-...?w=600&q=80">
-            <div class="fi-h">Placeholder — ganti dengan foto asli kapan saja setelah live</div>
-          </div>
-
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:18px;font-size:13px;font-weight:600">
             <input type="checkbox" id="mBS"> Tandai sebagai Best Seller
           </label>
-          <button class="btn b-pri b-fw" onclick="saveMenu()">Simpan Menu</button>
+          <button class="btn b-pri b-fw" id="mSaveBtn" onclick="saveMenu()">Simpan Menu</button>
         </div>
       </div>
     </div>`;
@@ -123,7 +119,7 @@ function renderList(list) {
           <span class="tsl"></span>
         </label>
         <button class="btn b-gho b-sm" onclick="editMenu('${m.id}')">Edit</button>
-        <button class="btn b-dan b-sm" onclick="delMenu('${m.id}', '${esc(m.name)}')">Hapus</button>
+        <button class="btn b-dan b-sm" onclick="delMenu('${m.id}', '${esc(m.name).replace(/'/g, "\\'")}')">Hapus</button>
       </div>
     </div>`).join('');
 }
@@ -136,88 +132,121 @@ function filterCat(el, cat) {
   renderList(list);
 }
 
-// ── Upload handlers ────────────────────────────────────────
-function doDrag(e, on) {
-  e.preventDefault();
-  document.getElementById('uzEl')?.classList.toggle('drag', on);
-}
-function doDrop(e) {
-  e.preventDefault();
-  document.getElementById('uzEl')?.classList.remove('drag');
-  showPrev([...e.dataTransfer.files].filter(f => f.type.startsWith('image/')));
-}
-function doFileSelect(inp) { showPrev([...inp.files]); }
-function showPrev(files) {
-  const pv = document.getElementById('upvEl'); if (!pv) return;
-  pv.innerHTML = files.map(f => `<img class="upt" src="${URL.createObjectURL(f)}" alt="${f.name}">`).join('');
-  if (files.length) toast(`${files.length} foto siap diunggah`, 'info');
-}
-
 // ── CRUD ──────────────────────────────────────────────────
 function openAdd() {
+  EDITING_MENU_ID = null;
   document.getElementById('mMenuTit').textContent = 'Tambah Menu Baru';
   ['mN','mD','mPU'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('mPS').value = '';
   document.getElementById('mPG').value = '';
   document.getElementById('mBS').checked = false;
   document.getElementById('mCat').value = 'Makanan';
-  document.getElementById('upvEl').innerHTML = '';
   openModal('mMenu');
 }
+window.openAdd = openAdd;
 
 function editMenu(id) {
   const m = STATE.menu.find(m => m.id === id); if (!m) return;
+  EDITING_MENU_ID = id;
   document.getElementById('mMenuTit').textContent = 'Edit Menu';
   document.getElementById('mN').value  = m.name;
   document.getElementById('mD').value  = m.description || '';
   document.getElementById('mPS').value = m.student_price || '';
   document.getElementById('mPG').value = m.general_price || m.price || '';
-  document.getElementById('mPU').value = m.photo_url || '';
+  document.getElementById('mPU').value = m.image_url || '';
   document.getElementById('mBS').checked = m.is_best_seller || false;
   document.getElementById('mCat').value  = m.category || 'Makanan';
-  document.getElementById('upvEl').innerHTML = '';
   openModal('mMenu');
 }
+window.editMenu = editMenu;
 
-function saveMenu() {
+async function saveMenu() {
   const nm = document.getElementById('mN').value.trim();
   if (!nm) { toast('Nama menu wajib diisi', 'err'); return; }
   const priceG = parseInt(document.getElementById('mPG').value) || 0;
+  if (priceG <= 0) { toast('Harga umum wajib diisi', 'err'); return; }
   const priceS = parseInt(document.getElementById('mPS').value) || Math.round(priceG * 0.9);
-  const photo  = document.getElementById('mPU').value.trim()
-    || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80';
 
-  STATE.menu.unshift({
-    id: 'new-' + Date.now(),
-    umkm_id: getMyUmkmId(),
-    name: nm,
-    description:  document.getElementById('mD').value.trim(),
-    student_price: priceS,
-    general_price: priceG,
-    price: priceG,
-    category:    document.getElementById('mCat').value,
-    photo_url:   photo,
-    is_best_seller: document.getElementById('mBS').checked,
-    is_available: true,
-    total_sold: 0,
-    created_at: new Date().toISOString(),
-  });
+  const btn = document.getElementById('mSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
 
-  closeModal('mMenu');
-  toast(`Menu "${nm}" berhasil ditambahkan!`, 'ok');
-  render();
+  try {
+    const sb = getSB();
+    const payload = {
+      umkm_id: getMyUmkmId(),
+      name: nm,
+      description: document.getElementById('mD').value.trim() || null,
+      student_price: priceS,
+      general_price: priceG,
+      price: priceG,
+      category: document.getElementById('mCat').value,
+      image_url: document.getElementById('mPU').value.trim() || null,
+      is_best_seller: document.getElementById('mBS').checked,
+      is_available: true,
+    };
+
+    if (EDITING_MENU_ID) {
+      // UPDATE
+      const { data, error } = await sb.from('menu').update(payload).eq('id', EDITING_MENU_ID).select().single();
+      if (error) throw error;
+      // Update STATE
+      const idx = STATE.menu.findIndex(m => m.id === EDITING_MENU_ID);
+      if (idx >= 0) STATE.menu[idx] = data;
+      toast(`Menu "${nm}" diperbarui!`, 'ok');
+    } else {
+      // INSERT
+      const { data, error } = await sb.from('menu').insert(payload).select().single();
+      if (error) throw error;
+      STATE.menu.unshift(data);
+      toast(`Menu "${nm}" ditambahkan!`, 'ok');
+    }
+
+    if (window.clearDataCache) clearDataCache();
+    closeModal('mMenu');
+    EDITING_MENU_ID = null;
+    render();
+  } catch(e) {
+    console.error('[saveMenu]', e);
+    toast('Gagal simpan: ' + (e.message || 'unknown'), 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Simpan Menu';
+  }
 }
+window.saveMenu = saveMenu;
 
-function toggleAvail(id, val) {
-  const m = STATE.menu.find(m => m.id === id); if (m) m.is_available = val;
-  toast(`Menu ${val ? 'diaktifkan' : 'dinonaktifkan'}`, 'info');
+async function toggleAvail(id, val) {
+  try {
+    const sb = getSB();
+    const { error } = await sb.from('menu').update({ is_available: val }).eq('id', id);
+    if (error) throw error;
+    const m = STATE.menu.find(m => m.id === id);
+    if (m) m.is_available = val;
+    if (window.clearDataCache) clearDataCache();
+    toast(`Menu ${val ? 'diaktifkan' : 'dinonaktifkan'}`, 'info');
+  } catch(e) {
+    console.error('[toggleAvail]', e);
+    toast('Gagal update: ' + e.message, 'err');
+  }
 }
+window.toggleAvail = toggleAvail;
 
-function delMenu(id, name) {
-  if (!confirm(`Hapus menu "${name}"?`)) return;
-  STATE.menu = STATE.menu.filter(m => m.id !== id);
-  toast(`Menu "${name}" dihapus`, 'info');
-  render();
+async function delMenu(id, name) {
+  if (!confirm(`Hapus menu "${name}" secara permanen?`)) return;
+  try {
+    const sb = getSB();
+    const { error } = await sb.from('menu').delete().eq('id', id);
+    if (error) throw error;
+    STATE.menu = STATE.menu.filter(m => m.id !== id);
+    if (window.clearDataCache) clearDataCache();
+    toast(`Menu "${name}" dihapus`, 'info');
+    render();
+  } catch(e) {
+    console.error('[delMenu]', e);
+    toast('Gagal hapus: ' + e.message, 'err');
+  }
 }
+window.delMenu = delMenu;
 
 init();
